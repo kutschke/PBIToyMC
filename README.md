@@ -17,4 +17,13 @@
   The two columns are extracted from columns A and B in the xlsx files.
   See the file Spill.hh for a description of the meanings of the columns.
 
+  To run the code,
+
+# Setup a recent version of root.  See setup.sh for an example.
+# root -l pbi.C
+
+This will read the input file, run the toy MC, make some histograms
+and ntuples.  It will draw some histograms to the screen and save
+that screen as a pdf file.  It will save all histograms and ntuples
+as a .root file.
 

@@ -4,6 +4,7 @@
 //
 // Given a spill computed the mean expected number of reconstructed ExtMon tracks
 // and simulate one measurement as Poisson fluctuations about that mean.
+// Compute sqrt(n) errors on the measurement - for use by root.
 //
 
 #include "Spill.hh"
@@ -33,8 +34,8 @@ struct Measurement{
   // Expected number of ExtMon tracks given POT and ExtMon efficiency
   std::vector<double> meanExtMonTracks;
 
-  // Simulated measurement with Poisson fluctuations.
-  std::vector<double> m;
+  // Simulated measurement with Poisson fluctuations and it's sqrt(n) error.
+  std::vector<double> m, err;
 
   // Mean number of reconstructed tracks
   double mean_reco;

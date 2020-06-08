@@ -1,6 +1,6 @@
 #include "Measurement.hh"
 
-#include <iostream>
+#include <cmath>
 
 using namespace std;
 
@@ -20,6 +20,7 @@ Measurement::Measurement( Spill const& spill,
     std::poisson_distribution<int> poisson( meanExtMonTracks.back() );
     int nreco = poisson(engine);
     m.push_back(nreco);
+    err.push_back(std::sqrt(nreco));
     sum_reco += m.back();
   }
   mean_reco = sum_reco/spill.size();

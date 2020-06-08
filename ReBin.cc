@@ -1,4 +1,4 @@
-#include "Group.hh"
+#include "ReBin.hh"
 
 #include <cmath>
 #include <iostream>
@@ -6,16 +6,16 @@
 
 using namespace std;
 
-Group::Group( std::vector<double>const& in_t, std::vector<double> const& in_val, int ngroup ): _size(0), ngroup(ngroup){
+ReBin::ReBin( std::vector<double>const& in_t, std::vector<double> const& in_val, int nrebin ): _size(0), nrebin(nrebin){
 
-  double group=ngroup;
+  double rebin=nrebin;
 
-  _size = std::floor(double(in_t.size())/double(ngroup));
+  _size = std::floor(double(in_t.size())/double(nrebin));
 
   double in_tick = in_t.at(1) - in_t.at(0);
 
-  cout << "Number of groups: " << in_t.size()/group << " " << size() << endl;
-  cout << "End test: " << ( in_t.back()-in_tick*(in_t.size()-1)) << endl;
+  cout << "Rebin factor: " << in_t.size()/rebin << " " << size() << endl;
+  cout << "End test:     " << ( in_t.back()-in_tick*(in_t.size()-1)) << endl;
 
   t.reserve(size());
   val.reserve(size());
@@ -24,7 +24,7 @@ Group::Group( std::vector<double>const& in_t, std::vector<double> const& in_val,
   fraction_rms.reserve(size());
   fraction_minmax.reserve(size());
 
-  cout << "Size is ... " << size() << " " << ngroup << endl;
+  cout << "Size is ... " << size() << " " << nrebin << endl;
 
   int j=0;
   for ( size_t i=0; i<size(); ++i ){
@@ -33,7 +33,7 @@ Group::Group( std::vector<double>const& in_t, std::vector<double> const& in_val,
     double tsum{0.};
     double vmax{0.};
     double vmin{std::numeric_limits<double>::max()};
-    for ( int k=0; k<ngroup; ++k){
+    for ( int k=0; k<nrebin; ++k){
       tsum += in_t.at(j);
       vsum += in_val.at(j);
       vsumsq += in_val.at(j)*in_val.at(j);
@@ -41,11 +41,11 @@ Group::Group( std::vector<double>const& in_t, std::vector<double> const& in_val,
       vmin = std::min( vmin, in_val.at(j) );
       ++j;
     }
-    double tmean = tsum/group;
-    double vmean = vsum/group;
-    double vrms  = sqrt( vsumsq/group - vmean*vmean);
+    double tmean = tsum/rebin;
+    double vmean = vsum/rebin;
+    double vrms  = sqrt( vsumsq/rebin - vmean*vmean);
     double vdiff = vmax-vmin;
-    err.push_back(sqrt(vsum)/group);
+    err.push_back(sqrt(vsum)/rebin);
     t.push_back(tmean);
     val.push_back(vmean);
     rms.push_back(vrms);
