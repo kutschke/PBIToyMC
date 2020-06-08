@@ -20,6 +20,9 @@ Spill::Spill( std::string const& filename ):filename(filename){
   stats = SDF(val);
 
   tick = t.at(1)-t.at(0);
+  half_tick = tick/2.0;
+  t0   = t.front() - half_tick;
+  tend = t.back()  + half_tick;
 
   // Debug
   //double tend  = tick*(t.size()-1);

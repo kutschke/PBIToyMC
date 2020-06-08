@@ -15,6 +15,7 @@
 struct Measurement{
 
   Measurement( Spill const& spill,
+	       int    prescale,
 	       double efficiency,
 	       std::default_random_engine& engine );
 
@@ -25,20 +26,31 @@ struct Measurement{
   // A reprentation of one spill.
   Spill const& spill;
 
-  // The random engine needed by the Poisson distribution generator.
-  std::default_random_engine& engine;
+  // Prescale factor; only keep every nth measurement from the input.
+  int prescale;
 
   // Efficiency per POT to make one reconstructable ExtMon track
   double efficiency;
 
+  // The random engine needed by the Poisson distribution generator.
+  std::default_random_engine& engine;
+
   // Expected number of ExtMon tracks given POT and ExtMon efficiency
-  std::vector<double> meanExtMonTracks;
+  std::vector<double> t, meanExtMonTracks;
 
   // Simulated measurement with Poisson fluctuations and it's sqrt(n) error.
-  std::vector<double> m, err;
+  std::vector<double> val, err;
 
   // Mean number of reconstructed tracks
   double mean_reco;
+
+  // Duration (seconds) between values in the time series.
+  double tick;
+  double half_tick;
+
+  // Time limits for histograms ( put the measured times at bin centers ).
+  double t0;
+  double tend;
 
 };
 

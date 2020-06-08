@@ -10,7 +10,6 @@
 #include <vector>
 
 #include <unistd.h>
- 
 
 {
   gROOT->Reset();
@@ -22,6 +21,9 @@
   // Base name of the input file; will also be used for base name of the output files.
   std::string base_filename = "Normal";
   //std::string const base_filename = "Pathological";
+
+  // Prescale factor to use for making simulated measurements.
+  int prescale = 10;
 
   // Rebin the input and reco time series in groups of:
   int const rebin_input = 5;
@@ -61,7 +63,7 @@
 
 #include "Measurement.cc+"
   // Create a simulated set of ExtMon measurements.
-  Measurement meas(spill,efficiency,engine);
+  Measurement meas(spill,prescale,efficiency,engine);
   cout << "Simulated measurement mean number of reco ExtMon tracks:  " << meas.mean_reco << endl;
 
 #include "ReBin.cc+"
@@ -72,31 +74,28 @@
   // Properties of the simulated measurements, rebinned.
   std::vector<ReBin> rebinned;
   for ( int i : rebin_reco ){
-    rebinned.emplace_back(meas.spill.t, meas.m, i );
+    rebinned.emplace_back(meas.t, meas.val, i );
   }
 
   // Create histograms and ntuples.
 
   const std::string title_input_rebin = "Fractional RMS of Sim Intensity rebinned by " + std::to_string(rebin_input);
 
-  const double half=spill.tick/2.;
-  TH1D* hSimSpill    = new TH1D("hSimSpill",    "Simulated Intensity", int(spill.size()), spill.t.front()-half, spill.t.back()+half );
+  TH1D* hSimSpill    = new TH1D("hSimSpill",    "Simulated Intensity", int(spill.size()), spill.t0, spill.tend );
   TH1D* hSimFRMS     = new TH1D("hSimFRMS",     title_input_rebin.c_str(),
-				int(input_rebin.size()), input_rebin.t.front()-input_rebin.half_tick, input_rebin.t.back()+input_rebin.half_tick );
-  TH1D* hRecoNominal = new TH1D("hRecoNominal", "Nominal Reco ExtMon Tracks", int(spill.size()), spill.t.front()-half, spill.t.back()+half );
-  TH1D* hReco        = new TH1D("hReco",        "Poisson Reco ExtMon Tracks", int(spill.size()), spill.t.front()-half, spill.t.back()+half );
+				input_rebin.size(), input_rebin.t0, input_rebin.tend );
+  TH1D* hRecoNominal = new TH1D("hRecoNominal", "Nominal Reco ExtMon Tracks", meas.size(), meas.t0, meas.tend  );
+  TH1D* hReco        = new TH1D("hReco",        "Poisson Reco ExtMon Tracks", meas.size(), meas.t0, meas.tend );
 
   std::vector<TH1D*> hrebinned;
   std::vector<TH1D*> hfrms;
   for ( auto const& r : rebinned ){
     std::string name   = "hRecoReBin_" + std::to_string(r.nrebin);
     std::string title  = "Reco ExtMon Tracks rebinned by " + std::to_string(r.nrebin);
-    hrebinned.emplace_back ( new TH1D(name.c_str(),   title.c_str(), 
-				      int(r.size()), r.t.front()-r.half_tick, r.t.back()+r.half_tick ) );
+    hrebinned.emplace_back ( new TH1D(name.c_str(),   title.c_str(), r.size(), r.t0, r.tend ));
     name  = "hRecoReBinFRMS_" + std::to_string(r.nrebin);
     title = "Fractional RMS Reco ExtMon Tracks rebinned by " + std::to_string(r.nrebin);
-    hfrms.emplace_back ( new TH1D(name.c_str(),   title.c_str(), 
-				  int(r.size()), r.t.front()-r.half_tick, r.t.back()+r.half_tick ) );
+    hfrms.emplace_back ( new TH1D(name.c_str(), title.c_str(), r.size(), r.t0, r.tend ) );
   }
 
   TNtuple* ntPBI = new TNtuple ( "ntPBI", "Simulated PBI", "t:v:frms:fminmax");
@@ -112,8 +111,10 @@
 
   for ( size_t i=0; i<spill.size(); ++i ){
     hSimSpill->Fill( spill.t.at(i), spill.val.at(i));
-    hRecoNominal->Fill( spill.t.at(i), meas.meanExtMonTracks.at(i));
-    hReco->Fill( spill.t.at(i), meas.m.at(i) );
+  }
+  for ( size_t i=0; i<meas.size(); ++i ){
+    hRecoNominal->Fill( meas.t.at(i), meas.meanExtMonTracks.at(i));
+    hReco->Fill( meas.t.at(i), meas.val.at(i) );
   }
   hReco->SetError( &meas.err.front() );
 
@@ -223,13 +224,11 @@
   for ( int i=0; i<3; ++i ){
     canvas->cd(i+2);  
     copy = hfrms.at(i)->DrawCopy("HIST");
-    //copy->SetMinimum(0.);
   }
 
   std::string const output_pdf_filename3  = base_filename + "_3.pdf";
   canvas->Print(output_pdf_filename3.c_str());
   cerr << "Print complete." << endl;
-
 
   pbi->Write();
   pbi->Close();

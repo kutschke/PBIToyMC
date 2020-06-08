@@ -26,12 +26,6 @@ struct ReBin{
 
   // Rebinning factor
   int nrebin;
-
-  // One tick of the rebinned time series;
-  double tick;
- 
-  // One half of one tick of the rebinned time series.
-  double half_tick;
  
   // Rebinned values of time, measurement and error bar on measurement.
   std::vector<double> t, val, err;
@@ -39,6 +33,14 @@ struct ReBin{
   // Values of rms and rms/mean for the rebinned data; these are only
   // meaningful if rebin factor is > 1.
   std::vector<double> rms, fraction_rms, fraction_minmax;
+
+  // Duration (seconds) between pulses
+  double tick;
+  double half_tick;
+
+  // Time limits for histograms ( put the measured times at bin centers ).
+  double t0;
+  double tend;
 
 };
 

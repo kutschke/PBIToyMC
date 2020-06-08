@@ -57,6 +57,9 @@ ReBin::ReBin( std::vector<double>const& in_t, std::vector<double> const& in_val,
       fraction_minmax.push_back(1.);
     }
   }
-  tick = t.at(1)-t.at(0);
+  tick      = t.at(1)-t.at(0);
   half_tick = tick/2.;
+
+  t0   = t.front()-half_tick;
+  tend = t.back() + half_tick;
 }

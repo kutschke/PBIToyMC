@@ -25,6 +25,11 @@ struct Spill{
 
   // Duration (seconds) between pulses
   double tick;
+  double half_tick;
+
+  // Time limits for histograms ( put the measured times at bin centers ).
+  double t0;
+  double tend;
 
   // Times series for the PBI: time (s) and value (number or protons).
   std::vector<double> t, val;
