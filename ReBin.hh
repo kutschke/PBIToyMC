@@ -21,7 +21,6 @@ struct ReBin{
   ReBin( std::vector<double>const& in_t, std::vector<double> const& in_val, int nrebin );
 
   // Number of entries in the rebinned data.
-  size_t _size;
   size_t size() const { return _size; }
 
   // Rebinning factor
@@ -41,6 +40,9 @@ struct ReBin{
   // Time limits for histograms ( put the measured times at bin centers ).
   double t0;
   double tend;
+
+private:
+  size_t _size;
 
 };
 

@@ -19,15 +19,15 @@
   constexpr double efficiency = 0.9e-6;
 
   // Base name of the input file; will also be used for base name of the output files.
-  std::string base_filename = "Normal";
-  //std::string const base_filename = "Pathological";
+  //std::string base_filename = "Normal";
+  std::string const base_filename = "Pathological";
 
   // Prescale factor to use for making simulated measurements.
-  int prescale = 10;
+  std::vector<int> prescale_vals{ 1, 25, 50, 100 };
 
   // Rebin the input and reco time series in groups of:
-  int const rebin_input = 5;
-  std::vector<int> const rebin_reco{3, 5, 11};
+  int const rebin_input = 40;
+  std::vector<int> const rebin_reco{2, 3, 4};
 
   // End configurable inputs
 
@@ -38,7 +38,7 @@
   gROOT->SetStyle("Plain");
 
   // No statistics box for histograms
-  gStyle->SetOptStat("");
+  gStyle->SetOptStat("eou");
 
   TFile* pbi = new TFile(output_root_filename.c_str(), "RECREATE");
 
@@ -60,21 +60,25 @@
        << "   rms: " << spill.stats.rms/1.E6 << " Mp,"
        << "   SDF: " << spill.stats.sdf
        << endl;
+  cout << "Spill binning: " << spill.size() << " " << spill.t0 << " " << spill.tend << endl;
 
 #include "Measurement.cc+"
   // Create a simulated set of ExtMon measurements.
-  Measurement meas(spill,prescale,efficiency,engine);
-  cout << "Simulated measurement mean number of reco ExtMon tracks:  " << meas.mean_reco << endl;
+  std::vector<Measurement> measurements;
+  for ( int prescale : prescale_vals ){
+    measurements.emplace_back(spill,prescale,efficiency,engine);
+    cout << "Simulated measurement mean number of reco ExtMon tracks:  " << measurements.back().mean_reco << endl;
+  }
 
 #include "ReBin.cc+"
 
   // Properties of the input simulated PBI, rebinned.
   ReBin input_rebin(spill.t, spill.val, rebin_input);
 
-  // Properties of the simulated measurements, rebinned.
+  // Properties of one of the simulated measurements, rebinned.
   std::vector<ReBin> rebinned;
   for ( int i : rebin_reco ){
-    rebinned.emplace_back(meas.t, meas.val, i );
+    rebinned.emplace_back(measurements.at(0).t, measurements.at(0).val, i );
   }
 
   // Create histograms and ntuples.
@@ -84,8 +88,16 @@
   TH1D* hSimSpill    = new TH1D("hSimSpill",    "Simulated Intensity", int(spill.size()), spill.t0, spill.tend );
   TH1D* hSimFRMS     = new TH1D("hSimFRMS",     title_input_rebin.c_str(),
 				input_rebin.size(), input_rebin.t0, input_rebin.tend );
-  TH1D* hRecoNominal = new TH1D("hRecoNominal", "Nominal Reco ExtMon Tracks", meas.size(), meas.t0, meas.tend  );
-  TH1D* hReco        = new TH1D("hReco",        "Poisson Reco ExtMon Tracks", meas.size(), meas.t0, meas.tend );
+
+  std::vector<TH1D*> hRecoNominal, hReco;
+  for ( Measurement const& meas: measurements){
+    std::string name   = "hRecoNominal_" + std::to_string(meas.prescale);
+    std::string title  = "Nominal Reco ExtMon Tracks prescaled by: " + std::to_string(meas.prescale);
+    hRecoNominal.emplace_back( new TH1D( name.c_str(), title.c_str(), meas.size(), meas.t0, meas.tend  ));
+    name   = "hReco_" + std::to_string(meas.prescale);
+    title  = "Reco ExtMon Tracks prescaled by: " + std::to_string(meas.prescale);
+    hReco.emplace_back( new TH1D( name.c_str(), title.c_str(), meas.size(), meas.t0, meas.tend ));
+  }
 
   std::vector<TH1D*> hrebinned;
   std::vector<TH1D*> hfrms;
@@ -112,11 +124,15 @@
   for ( size_t i=0; i<spill.size(); ++i ){
     hSimSpill->Fill( spill.t.at(i), spill.val.at(i));
   }
-  for ( size_t i=0; i<meas.size(); ++i ){
-    hRecoNominal->Fill( meas.t.at(i), meas.meanExtMonTracks.at(i));
-    hReco->Fill( meas.t.at(i), meas.val.at(i) );
+
+  for ( size_t i=0; i<measurements.size(); ++i ){
+    Measurement const& meas = measurements.at(i);
+    for ( size_t j=0; j<meas.size(); ++j ){
+      hRecoNominal.at(i)->Fill( meas.t.at(j), meas.meanExtMonTracks.at(j));
+      hReco.at(i)->Fill( meas.t.at(j), meas.val.at(j) );
+    }
+    hReco.at(i)->SetError( &meas.err.front() );
   }
-  hReco->SetError( &meas.err.front() );
 
   for ( size_t i=0; i<input_rebin.size(); ++i ){
     hSimFRMS->Fill( input_rebin.t.at(i), input_rebin.fraction_rms.at(i) );
@@ -191,13 +207,10 @@
   canvas->Clear();
   canvas->Divide(1,4);
 
-  canvas->cd(1);
-  copy = hReco->DrawCopy("");
-  copy->SetMinimum(0.);
-
-  for ( int i=0; i<3; ++i ){
-    canvas->cd(i+2);  
-    copy = hrebinned.at(i)->DrawCopy();
+  int ipad=0;
+  for ( auto & h : hReco ){
+    canvas->cd(++ipad);
+    copy = h->DrawCopy("");
     copy->SetMinimum(0.);
   }
 
@@ -220,8 +233,8 @@
   hSimSpill->DrawCopy("HIST");
   line->DrawLine( spill.t.front(), spill.stats.mean, spill.t.back(), spill.stats.mean );
   gPad->SetLogy(1);
-  
-  for ( int i=0; i<3; ++i ){
+
+  for ( int i=0; i<hfrms.size(); ++i ){
     canvas->cd(i+2);  
     copy = hfrms.at(i)->DrawCopy("HIST");
   }

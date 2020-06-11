@@ -19,9 +19,7 @@ struct Measurement{
 	       double efficiency,
 	       std::default_random_engine& engine );
 
-  size_t size() const { return spill.size(); }
-
-  //std::vector<double> const& t() const { return spill.t; }
+  size_t size() const { return _size; }
 
   // A reprentation of one spill.
   Spill const& spill;
@@ -51,6 +49,9 @@ struct Measurement{
   // Time limits for histograms ( put the measured times at bin centers ).
   double t0;
   double tend;
+
+private:
+  size_t _size;
 
 };
 
